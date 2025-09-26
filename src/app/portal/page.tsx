@@ -1,11 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import { Suspense, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import axios from 'axios';
 
-// Подсказываем Next, что страница динамическая (не SSG)
 export const dynamic = 'force-dynamic';
 
 type Plan = { id: string; name: string; hours: number; price: number };
@@ -17,16 +16,22 @@ function PortalInner() {
   const ssid = useMemo(() => params.get('ssid') ?? '', [params]);
   const apMac = useMemo(() => params.get('apMac') ?? '', [params]);
 
-  // setPlans не нужен — убираем предупреждение ESLint
-  const plans: Plan[] = [
-    { id: 'p1', name: '1 час', hours: 1, price: 300 },
-    { id: 'p3', name: '3 часа', hours: 3, price: 700 },
-    { id: 'p8', name: '8 часов', hours: 8, price: 1200 },
-    { id: 'p24', name: '24 часа', hours: 24, price: 2000 },
-  ];
-
+  const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await axios.get<Plan[]>(`${process.env.NEXT_PUBLIC_BACKEND}/plans`, {
+          headers: { 'Cache-Control': 'no-store' },
+        });
+        setPlans(res.data);
+      } catch (e) {
+        setMsg('Не удалось загрузить тарифы');
+      }
+    })();
+  }, []);
 
   async function pay(plan: Plan) {
     setLoading(true);
@@ -53,6 +58,11 @@ function PortalInner() {
         <p className="text-sm text-gray-600">MAC: {clientMac || 'неизвестно'}</p>
 
         <h2 className="mt-6 text-lg font-medium">Выберите тариф</h2>
+
+        {!plans.length && !msg && (
+          <div className="mt-4 text-sm text-gray-600">Загрузка тарифов…</div>
+        )}
+
         <ul className="mt-3 space-y-3">
           {plans.map((p) => (
             <li key={p.id} className="rounded-xl border p-4 flex items-center justify-between">
