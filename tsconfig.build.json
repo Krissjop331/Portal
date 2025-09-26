@@ -1,5 +1,11 @@
 {
   "extends": "./tsconfig.json",
-  "compilerOptions": { "declaration": true, "sourceMap": false },
+  "compilerOptions": {
+    "declaration": true,
+    "sourceMap": false,
+    "outDir": "./dist",
+    "rootDir": "./src" // <— ключевая строка
+  },
+  "include": ["src/**/*.ts"], // <— явно укажем, что билдим только src
   "exclude": ["node_modules", "dist", "test", "**/*.spec.ts"]
 }
