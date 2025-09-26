@@ -1,0 +1,56 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+model Plan {
+  id     String @id
+  name   String
+  hours  Int
+  price  Int
+  // для гибкости можно добавить currency и isActive
+
+  Payment Payment[]
+
+  Session Session[]
+}
+
+model Device {
+  id        String  @id @default(cuid())
+  mac       String  @unique
+  lastIp    String?
+  userAgent String?
+  createdAt DateTime @default(now())
+}
+
+model Payment {
+  id        String   @id @default(cuid())
+  planId    String
+  deviceMac String
+  amount    Int
+  status    String   // pending|paid|failed
+  provider  String   // kaspi|stub|...
+  providerTxId String?
+  createdAt DateTime @default(now())
+  paidAt    DateTime?
+
+  plan   Plan   @relation(fields: [planId], references: [id])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  deviceMac String
+  planId    String
+  startAt   DateTime
+  endAt     DateTime
+  source    String   // 'omada'
+  createdAt DateTime @default(now())
+
+  plan   Plan   @relation(fields: [planId], references: [id])
+}
