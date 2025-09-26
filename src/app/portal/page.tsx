@@ -1,23 +1,29 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
+
+import { Suspense, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
+
+// Подсказываем Next, что страница динамическая (не SSG)
+export const dynamic = 'force-dynamic';
 
 type Plan = { id: string; name: string; hours: number; price: number };
 
-export default function PortalPage() {
+function PortalInner() {
   const params = useSearchParams();
-  const [plans, setPlans] = useState<Plan[]>([
-    { id: 'p1', name: '1 час', hours: 1, price: 300 },
-    { id: 'p3', name: '3 часа', hours: 3, price: 700 },
-    { id: 'p8', name: '8 часов', hours: 8, price: 1200 },
-    { id: 'p24', name: '24 часа', hours: 24, price: 2000 },
-  ]);
 
   const clientMac = useMemo(() => params.get('clientMac') ?? '', [params]);
   const ssid = useMemo(() => params.get('ssid') ?? '', [params]);
   const apMac = useMemo(() => params.get('apMac') ?? '', [params]);
+
+  // setPlans не нужен — убираем предупреждение ESLint
+  const plans: Plan[] = [
+    { id: 'p1', name: '1 час', hours: 1, price: 300 },
+    { id: 'p3', name: '3 часа', hours: 3, price: 700 },
+    { id: 'p8', name: '8 часов', hours: 8, price: 1200 },
+    { id: 'p24', name: '24 часа', hours: 24, price: 2000 },
+  ];
 
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -30,7 +36,6 @@ export default function PortalPage() {
         planId: plan.id,
         meta: { clientMac, ssid, apMac },
       });
-      // на этапе стаба просто редиректим на "квитанцию"
       if (res.data?.paymentUrl) window.location.href = res.data.paymentUrl;
       else setMsg('Создан платёж (тест). Ждём вебхук…');
     } catch (e: any) {
@@ -45,7 +50,7 @@ export default function PortalPage() {
       <section className="mx-auto max-w-md p-6">
         <h1 className="text-2xl font-semibold">Гостевой Wi-Fi</h1>
         <p className="mt-2 text-sm text-gray-600">SSID: {ssid || 'неизвестно'}</p>
-        <p className="text-sm text-gray-600">MAC устройства: {clientMac || 'неизвестно'}</p>
+        <p className="text-sm text-gray-600">MAC: {clientMac || 'неизвестно'}</p>
 
         <h2 className="mt-6 text-lg font-medium">Выберите тариф</h2>
         <ul className="mt-3 space-y-3">
@@ -69,5 +74,21 @@ export default function PortalPage() {
         {msg && <div className="mt-4 text-sm text-amber-700">{msg}</div>}
       </section>
     </main>
+  );
+}
+
+function Loading() {
+  return (
+    <main className="min-h-dvh grid place-items-center">
+      <div className="text-gray-600">Загрузка…</div>
+    </main>
+  );
+}
+
+export default function PortalPage() {
+  return (
+    <Suspense fallback={<Loading />}>
+      <PortalInner />
+    </Suspense>
   );
 }
